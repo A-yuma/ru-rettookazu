@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おかずランダム選択</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>おかずランダム選択</h1>
+        <div class="info">
+            <p>ボタンを押すと15個のおかずがランダムに選ばれます</p>
+            <ul>
+                <li>重めのおかず: 2個</li>
+                <li>その他のおかず: 10個</li>
+                <li>スープ: 3個</li>
+            </ul>
+        </div>
+        
+        <button id="selectButton" class="select-button">おかずを選ぶ</button>
+        
+        <div id="results" class="results"></div>
+        
+        <div class="button-container">
+            <button id="resetButton" class="reset-button">リセット</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
