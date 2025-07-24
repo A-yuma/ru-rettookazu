@@ -1,0 +1,33 @@
+name: Auto Update README
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 毎日0時（UTC）に実行
+  workflow_dispatch:      # 手動実行も可能にするオプション
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v3
+
+      - name: READMEを更新
+        run: |
+          echo "# 自動更新されたREADME" > README.md
+          echo "更新日時: $(date)" >> README.md
+
+      - name: gitの設定
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 変更をコミットしてプッシュ
+        run: |
+          git add README.md
+          git commit -m "Update README automatically"
+          git push origin HEAD:main
+        env:
+          # GitHub Actionsのトークン。デフォルトで用意されている
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
