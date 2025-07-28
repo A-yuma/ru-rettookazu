@@ -38,15 +38,134 @@ let selectionHistory = [];
 // ボタンが押された回数をカウント
 let buttonPressCount = 0;
 
+// リアルタイム同期用の変数
+let isConnected = false;
+let syncId = 'okazu-' + Math.random().toString(36).substr(2, 9);
+
+// シンプルなWebSocket代替（localStorage + storageイベント）
+function initRealtimeSync() {
+    // 他のタブからの変更を監視
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'okazuRealtime') {
+            const data = JSON.parse(e.newValue);
+            if (data.syncId !== syncId) { // 自分以外からの変更
+                handleRealtimeUpdate(data);
+            }
+        }
+    });
+    
+    // 定期的にリアルタイムデータをチェック
+    setInterval(checkRealtimeUpdates, 1000);
+    isConnected = true;
+}
+
+// リアルタイムデータを送信
+function sendRealtimeUpdate(type, data) {
+    if (!isConnected) return;
+    
+    const updateData = {
+        type: type,
+        data: data,
+        timestamp: Date.now(),
+        syncId: syncId
+    };
+    
+    localStorage.setItem('okazuRealtime', JSON.stringify(updateData));
+}
+
+// リアルタイム更新を処理
+function handleRealtimeUpdate(updateData) {
+    switch(updateData.type) {
+        case 'selection':
+            // 抽選結果の同期
+            selectionHistory = updateData.data.selectionHistory;
+            buttonPressCount = updateData.data.buttonPressCount;
+            displayResults(updateData.data.heavy, updateData.data.other, updateData.data.soup);
+            
+            // ヘッダーも同期
+            if (updateData.data.headers) {
+                header1.textContent = updateData.data.headers[0];
+                header2.textContent = updateData.data.headers[1];
+                header3.textContent = updateData.data.headers[2];
+                header4.textContent = updateData.data.headers[3];
+                header5.textContent = updateData.data.headers[4];
+            }
+            break;
+            
+        case 'input':
+            // インプット値の同期
+            if (updateData.data.okazuInput !== undefined) {
+                okazuInput.value = updateData.data.okazuInput;
+            }
+            if (updateData.data.categorySelect !== undefined) {
+                categorySelect.value = updateData.data.categorySelect;
+            }
+            break;
+            
+        case 'add':
+            // おかず追加の同期
+            okazuData[updateData.data.category] = updateData.data.newData;
+            updateDeleteOptions();
+            break;
+            
+        case 'delete':
+            // おかず削除の同期
+            okazuData[updateData.data.category] = updateData.data.newData;
+            updateDeleteOptions();
+            break;
+            
+        case 'reset':
+            // リセットの同期
+            selectionHistory = [];
+            buttonPressCount = 0;
+            resultsDiv.innerHTML = '';
+            resetButton.classList.add('hidden');
+            
+            // ヘッダーをリセット
+            header1.textContent = '父';
+            header2.textContent = '父';
+            header3.textContent = '優馬';
+            header4.textContent = '夢月';
+            header5.textContent = '母';
+            break;
+    }
+}
+
+// 定期的なリアルタイムチェック
+function checkRealtimeUpdates() {
+    const realtimeData = localStorage.getItem('okazuRealtime');
+    if (realtimeData) {
+        const data = JSON.parse(realtimeData);
+        // 5秒以上古いデータは無視
+        if (Date.now() - data.timestamp < 5000 && data.syncId !== syncId) {
+            handleRealtimeUpdate(data);
+        }
+    }
+}
+
 // DOM要素の取得
 const selectButton = document.getElementById('selectButton');
 const resetButton = document.getElementById('resetButton');
 const resultsDiv = document.getElementById('results');
+const categorySelect = document.getElementById('categorySelect');
+const okazuInput = document.getElementById('okazuInput');
+const addButton = document.getElementById('addButton');
+const deleteCategorySelect = document.getElementById('deleteCategorySelect');
+const deleteOkazuSelect = document.getElementById('deleteOkazuSelect');
+const deleteButton = document.getElementById('deleteButton');
+
+// テーブルヘッダーの要素を取得
+const header1 = document.getElementById('header1');
+const header2 = document.getElementById('header2');
+const header3 = document.getElementById('header3');
+const header4 = document.getElementById('header4');
+const header5 = document.getElementById('header5');
 
 // ローカルストレージからデータを読み込む
 function loadFromStorage() {
     const savedHistory = localStorage.getItem('okazuHistory');
     const savedCount = localStorage.getItem('okazuButtonCount');
+    const savedOkazuData = localStorage.getItem('okazuData');
     
     if (savedHistory) {
         selectionHistory = JSON.parse(savedHistory);
@@ -54,6 +173,14 @@ function loadFromStorage() {
     
     if (savedCount) {
         buttonPressCount = parseInt(savedCount);
+    }
+    
+    if (savedOkazuData) {
+        const loadedData = JSON.parse(savedOkazuData);
+        // 既存のデータに追加されたおかずをマージ
+        Object.keys(loadedData).forEach(category => {
+            okazuData[category] = loadedData[category];
+        });
     }
     
     // 最後の選択結果を表示
@@ -67,6 +194,125 @@ function loadFromStorage() {
 function saveToStorage() {
     localStorage.setItem('okazuHistory', JSON.stringify(selectionHistory));
     localStorage.setItem('okazuButtonCount', buttonPressCount.toString());
+    localStorage.setItem('okazuData', JSON.stringify(okazuData));
+}
+
+// おかずを追加する関数
+function addOkazu() {
+    const category = categorySelect.value;
+    const newOkazu = okazuInput.value.trim();
+    
+    if (newOkazu === '') {
+        alert('おかず名を入力してください');
+        return;
+    }
+    
+    if (okazuData[category].includes(newOkazu)) {
+        alert('そのおかずは既に登録されています');
+        return;
+    }
+    
+    // おかずを追加
+    okazuData[category].push(newOkazu);
+    
+    // ローカルストレージに保存
+    saveToStorage();
+    
+    // 削除用のセレクトボックスを更新
+    updateDeleteOptions();
+    
+    // インプットをクリア
+    okazuInput.value = '';
+    
+    alert(`「${newOkazu}」を${categorySelect.options[categorySelect.selectedIndex].text}に追加しました`);
+    
+    // リアルタイム同期
+    sendRealtimeUpdate('add', {
+        category: category,
+        newData: okazuData[category]
+    });
+}
+
+// おかずを削除する関数
+function deleteOkazu() {
+    const category = deleteCategorySelect.value;
+    const okazuToDelete = deleteOkazuSelect.value;
+    
+    if (okazuToDelete === '') {
+        alert('削除するおかずを選択してください');
+        return;
+    }
+    
+    // 確認ダイアログ
+    if (!confirm(`「${okazuToDelete}」を削除しますか？`)) {
+        return;
+    }
+    
+    // おかずを削除
+    const index = okazuData[category].indexOf(okazuToDelete);
+    if (index > -1) {
+        okazuData[category].splice(index, 1);
+    }
+    
+    // ローカルストレージに保存
+    saveToStorage();
+    
+    // 削除用のセレクトボックスを更新
+    updateDeleteOptions();
+    
+    alert(`「${okazuToDelete}」を削除しました`);
+    
+    // リアルタイム同期
+    sendRealtimeUpdate('delete', {
+        category: category,
+        newData: okazuData[category]
+    });
+}
+
+// 削除用セレクトボックスを更新する関数
+function updateDeleteOptions() {
+    const category = deleteCategorySelect.value;
+    const okazuList = okazuData[category];
+    
+    // セレクトボックスをクリア
+    deleteOkazuSelect.innerHTML = '<option value="">削除するおかずを選択</option>';
+    
+    // おかずのオプションを追加
+    okazuList.forEach(okazu => {
+        const option = document.createElement('option');
+        option.value = okazu;
+        option.textContent = okazu;
+        deleteOkazuSelect.appendChild(option);
+    });
+}
+
+// テーブルヘッダーを変更する関数
+function updateTableHeaders() {
+    // 現在のヘッダーの値を取得
+    const currentHeaders = [
+        header1.textContent,
+        header2.textContent,
+        header3.textContent,
+        header4.textContent,
+        header5.textContent
+    ];
+    
+    // ローテーション: 最後の要素を最初に移動し、他は左にシフト
+    // 項目1と項目2は同じ値にする
+    const rotatedHeaders = [
+        currentHeaders[2], // 項目3 → 項目1
+        currentHeaders[2], // 項目3 → 項目2（項目1と同じ）
+        currentHeaders[3], // 項目4 → 項目3
+        currentHeaders[4], // 項目5 → 項目4
+        currentHeaders[0]  // 項目1 → 項目5
+    ];
+    
+    // ヘッダーを更新
+    header1.textContent = rotatedHeaders[0];
+    header2.textContent = rotatedHeaders[1];
+    header3.textContent = rotatedHeaders[2];
+    header4.textContent = rotatedHeaders[3];
+    header5.textContent = rotatedHeaders[4];
 }
 
 // ランダム選択関数
@@ -155,9 +401,20 @@ function selectOkazu() {
         excludedItems.soup.push(...selection.soup);
     });
     
+    // サラダ系のおかずを特別に処理
+    const saladItems = okazuData.other.filter(item => item.includes('サラダ'));
+    const selectedSalads = getRandomItems(saladItems, 2, []); // サラダは制限なしで2個選択
+    
+    // その他のおかずからサラダ以外を選択（サラダを除外リストに追加）
+    const nonSaladOther = okazuData.other.filter(item => !item.includes('サラダ'));
+    const excludedNonSaladOther = excludedItems.other.filter(item => !item.includes('サラダ'));
+    const selectedNonSaladOther = getRandomItems(nonSaladOther, 8, excludedNonSaladOther); // 残り8個
+    
+    // サラダとその他を結合
+    const selectedOther = [...selectedSalads, ...selectedNonSaladOther];
+    
     // それぞれのカテゴリーからランダム選択
     const selectedHeavy = getRandomItems(okazuData.heavy, 2, excludedItems.heavy);
-    const selectedOther = getRandomItems(okazuData.other, 10, excludedItems.other);
     const selectedSoup = getRandomItems(okazuData.soup, 3, excludedItems.soup);
     
     // 今回の選択を履歴に追加
@@ -171,8 +428,27 @@ function selectOkazu() {
     // ローカルストレージに保存
     saveToStorage();
     
+    // テーブルヘッダーを変更
+    updateTableHeaders();
+    
     // 結果を表示
     displayResults(selectedHeavy, selectedOther, selectedSoup);
+    
+    // リアルタイム同期
+    sendRealtimeUpdate('selection', {
+        heavy: selectedHeavy,
+        other: selectedOther,
+        soup: selectedSoup,
+        selectionHistory: selectionHistory,
+        buttonPressCount: buttonPressCount,
+        headers: [
+            header1.textContent,
+            header2.textContent,
+            header3.textContent,
+            header4.textContent,
+            header5.textContent
+        ]
+    });
 }
 
 // リセット関数
@@ -182,17 +458,59 @@ function resetSelection() {
     resultsDiv.innerHTML = '';
     resetButton.classList.add('hidden');
     
+    // ヘッダーをリセット
+    header1.textContent = 'A';
+    header2.textContent = 'A';
+    header3.textContent = 'B';
+    header4.textContent = 'C';
+    header5.textContent = 'D';
+    
     // ローカルストレージもクリア
     localStorage.removeItem('okazuHistory');
     localStorage.removeItem('okazuButtonCount');
+    // おかずデータはリセットしない（追加したおかずを保持）
+    
+    // リアルタイム同期
+    sendRealtimeUpdate('reset', {});
 }
 
 // イベントリスナーの設定
 selectButton.addEventListener('click', selectOkazu);
 resetButton.addEventListener('click', resetSelection);
+addButton.addEventListener('click', addOkazu);
+deleteButton.addEventListener('click', deleteOkazu);
+
+// 削除カテゴリー変更時にオプションを更新
+deleteCategorySelect.addEventListener('change', updateDeleteOptions);
+
+// Enterキーでおかず追加
+okazuInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        addOkazu();
+    }
+});
+
+// インプットフィールドのリアルタイム同期
+okazuInput.addEventListener('input', function() {
+    sendRealtimeUpdate('input', {
+        okazuInput: okazuInput.value
+    });
+});
+
+categorySelect.addEventListener('change', function() {
+    sendRealtimeUpdate('input', {
+        categorySelect: categorySelect.value
+    });
+});
 
 // 初期状態でリセットボタンを非表示
 resetButton.classList.add('hidden');
 
 // ページ読み込み時にローカルストレージからデータを復元
 loadFromStorage();
+
+// リアルタイム同期を開始
+initRealtimeSync();
+
+// 削除用のセレクトボックスを初期化
+updateDeleteOptions();
