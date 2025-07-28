@@ -55,7 +55,7 @@ function initRealtimeSync() {
     });
     
     // 定期的にリアルタイムデータをチェック
-    setInterval(checkRealtimeUpdates, 1000);
+    setInterval(checkRealtimeUpdates, 500);
     isConnected = true;
 }
 
@@ -71,6 +71,17 @@ function sendRealtimeUpdate(type, data) {
     };
     
     localStorage.setItem('okazuRealtime', JSON.stringify(updateData));
+    
+    // 即座にローカルでも処理（同じタブ内でのテスト用）
+    setTimeout(() => {
+        const storedData = localStorage.getItem('okazuRealtime');
+        if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            if (parsedData.timestamp === updateData.timestamp && parsedData.syncId !== syncId) {
+                handleRealtimeUpdate(parsedData);
+            }
+        }
+    }, 100);
 }
 
 // リアルタイム更新を処理
@@ -102,6 +113,14 @@ function handleRealtimeUpdate(updateData) {
             }
             break;
             
+        case 'tableInput':
+            // テーブルインプットの同期
+            const tableInputElements = document.querySelectorAll('.table-input');
+            if (updateData.data.index !== undefined && tableInputElements[updateData.data.index]) {
+                tableInputElements[updateData.data.index].value = updateData.data.value;
+            }
+            break;
+            
         case 'add':
             // おかず追加の同期
             okazuData[updateData.data.category] = updateData.data.newData;
@@ -127,18 +146,28 @@ function handleRealtimeUpdate(updateData) {
             header3.textContent = '優馬';
             header4.textContent = '夢月';
             header5.textContent = '母';
+            
+            // テーブルインプットもクリア
+            const resetTableInputs = document.querySelectorAll('.table-input');
+            resetTableInputs.forEach(input => {
+                input.value = '';
+            });
             break;
     }
 }
 
 // 定期的なリアルタイムチェック
+let lastCheckedTimestamp = 0;
 function checkRealtimeUpdates() {
     const realtimeData = localStorage.getItem('okazuRealtime');
     if (realtimeData) {
         const data = JSON.parse(realtimeData);
-        // 5秒以上古いデータは無視
-        if (Date.now() - data.timestamp < 5000 && data.syncId !== syncId) {
+        // 10秒以内で、自分以外からの変更で、まだ処理していないデータ
+        if (Date.now() - data.timestamp < 10000 && 
+            data.syncId !== syncId && 
+            data.timestamp > lastCheckedTimestamp) {
             handleRealtimeUpdate(data);
+            lastCheckedTimestamp = data.timestamp;
         }
     }
 }
@@ -459,11 +488,17 @@ function resetSelection() {
     resetButton.classList.add('hidden');
     
     // ヘッダーをリセット
-    header1.textContent = 'A';
-    header2.textContent = 'A';
-    header3.textContent = 'B';
-    header4.textContent = 'C';
-    header5.textContent = 'D';
+    header1.textContent = '父';
+    header2.textContent = '父';
+    header3.textContent = '優馬';
+    header4.textContent = '夢月';
+    header5.textContent = '母';
+    
+    // テーブルインプットもクリア
+    const resetTableInputsLocal = document.querySelectorAll('.table-input');
+    resetTableInputsLocal.forEach(input => {
+        input.value = '';
+    });
     
     // ローカルストレージもクリア
     localStorage.removeItem('okazuHistory');
@@ -514,3 +549,14 @@ initRealtimeSync();
 
 // 削除用のセレクトボックスを初期化
 updateDeleteOptions();
+
+// テーブルインプットフィールドのリアルタイム同期
+const tableInputs = document.querySelectorAll('.table-input');
+tableInputs.forEach((input, index) => {
+    input.addEventListener('input', function() {
+        sendRealtimeUpdate('tableInput', {
+            index: index,
+            value: input.value
+        });
+    });
+});
