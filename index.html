@@ -8,17 +8,87 @@
 </head>
 <body>
     <div class="container">
-        <h1>おかずランダム選択</h1>
-        <div class="info">
-            <p>ボタンを押すと15個のおかずがランダムに選ばれます</p>
-            <ul>
-                <li>重めのおかず: 2個</li>
-                <li>その他のおかず: 10個</li>
-                <li>スープ: 3個</li>
-            </ul>
+        <h1>おかずランダム選択</h1>        
+        <div class="input-section">
+            <h2>おかず管理</h2>
+            <table class="input-table">
+                <thead>
+                    <tr>
+                        <th>カテゴリー</th>
+                        <th>おかず名</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <select id="categorySelect" class="category-select">
+                                <option value="heavy">重めのおかず</option>
+                                <option value="other">その他のおかず</option>
+                                <option value="soup">スープ</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" id="okazuInput" class="okazu-input" placeholder="新しいおかず名を入力">
+                        </td>
+                        <td>
+                            <button id="addButton" class="add-button">追加</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <select id="deleteCategorySelect" class="category-select">
+                                <option value="heavy">重めのおかず</option>
+                                <option value="other">その他のおかず</option>
+                                <option value="soup">スープ</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select id="deleteOkazuSelect" class="okazu-select">
+                                <option value="">削除するおかずを選択</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button id="deleteButton" class="delete-button">削除</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        
-        <button id="selectButton" class="select-button">おかずを選ぶ</button>
+        <button id="selectButton" class="select-button">おかずを選ぶ</button>  
+        <div class="empty-table-section">
+            <h2>空のテーブル</h2>
+            <table class="empty-table">
+                <thead>
+                    <tr>
+                        <th id="header1">父</th>
+                        <th id="header2">父</th>
+                        <th id="header3">優馬</th>
+                        <th id="header4">夢月</th>
+                        <th id="header5">母</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <input type="text" class="table-input" placeholder="メイン">
+                        </td>
+                        <td>
+                            <input type="text" class="table-input" placeholder="メイン">
+                        </td>
+                        <td>
+                            <input type="text" class="table-input" placeholder="メイン">
+                        </td>
+                        <td>
+                            <input type="text" class="table-input" placeholder="メイン">
+                        </td>
+                        <td>
+                            <input type="text" class="table-input" placeholder="メイン">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         
         <div id="results" class="results"></div>
         
