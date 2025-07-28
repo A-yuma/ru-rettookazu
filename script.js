@@ -141,11 +141,11 @@ function handleRealtimeUpdate(updateData) {
             resetButton.classList.add('hidden');
             
             // ヘッダーをリセット
-            header1.textContent = '父';
-            header2.textContent = '父';
-            header3.textContent = '優馬';
-            header4.textContent = '夢月';
-            header5.textContent = '母';
+            header1.textContent = '母';
+            header2.textContent = '母';
+            header3.textContent = '父';
+            header4.textContent = '優馬';
+            header5.textContent = '夢月';
             
             // テーブルインプットもクリア
             const resetTableInputs = document.querySelectorAll('.table-input');
@@ -488,11 +488,11 @@ function resetSelection() {
     resetButton.classList.add('hidden');
     
     // ヘッダーをリセット
-    header1.textContent = '父';
-    header2.textContent = '父';
-    header3.textContent = '優馬';
-    header4.textContent = '夢月';
-    header5.textContent = '母';
+    header1.textContent = '母';
+    header2.textContent = '母';
+    header3.textContent = '父';
+    header4.textContent = '優馬';
+    header5.textContent = '夢月';
     
     // テーブルインプットもクリア
     const resetTableInputsLocal = document.querySelectorAll('.table-input');
