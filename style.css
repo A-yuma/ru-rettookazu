@@ -336,3 +336,62 @@ h1 {
         grid-template-columns: 1fr;
     }
 }
+/* 今週のメインテーブルのレスポンシブ対応 */
+@media screen and (max-width: 600px) {
+    .empty-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .empty-table thead {
+        display: none; /* ヘッダーを非表示 */
+    }
+
+    .empty-table tbody tr {
+        display: block;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+    }
+
+    .empty-table tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 0;
+    }
+
+    .empty-table tbody td::before {
+        content: attr(data-label); /* ヘッダーの内容を表示 */
+        font-weight: bold;
+        margin-right: 10px;
+        color: #333;
+    }
+
+    .table-input {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+@media screen and (max-width: 600px) {
+    .empty-table tbody td {
+        display: block; /* セルを縦並びに */
+        width: 100%;
+        text-align: left;
+        padding: 10px 0;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .empty-table tbody td:last-child {
+        border-bottom: none;
+    }
+
+    .empty-table tbody td::before {
+        content: attr(data-label); /* ヘッダーの内容を表示 */
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+}
